@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="refresh" content="5;url=/">
+    <title>에러 출력</title>
+
+    <style>
+        .container {
+            width : 700px;
+            height: auto;
+            margin : 0 auto;
+            text-align : center;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>[에러 발생]</h2>
+    <img th:src="@{/images/error.png}" alt="">
+    <p th:text="${errorMsg}"></p>
+</div>
+</body>
+</html>

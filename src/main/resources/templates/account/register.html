@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>회원가입 화면</title>
+    <script th:src="@{/script/jquery-3.6.0.min.js}"></script>
+    <script>
+        let possible = false; // 회원 가입이 가능한 상태 : true
+        $(function(){
+            $("#usrid").on('keyup', idCheck);
+            $("#submit_btn").on('click', regist);
+        });
+
+        function idCheck() {
+            let usrid = $("#usrid").val();
+
+            // 아이디의 길이를 제한 (3~5)
+            if(usrid.trim().length < 3 || usrid.trim().length > 5) {
+                $("#idCheck").css("color", "red");
+                $("#idCheck").html("아이디는 3~5사이로 입력해 주세요");
+                return;
+            }
+
+            // DB에 아이디를 전송해서 중복된 아이디인지 체크
+            $.ajax({
+                url : '/account/idCheck',
+                method : 'POST',
+                data : {"usrid" : usrid},
+                success : function(resp) {
+                    if(resp != true) {
+                        $("#idCheck").css("color", "red");
+                        $("#idCheck").html("사용 불가능한 아이디입니다.");
+                        possible = false;
+                    } else {
+                        $("#idCheck").css("color", "blue");
+                        $("#idCheck").html("사용 가능한 아이디입니다.");
+                        possible = true;
+                    }
+                }
+            });
+        }
+        function regist() {
+            if(possible == true) {
+                $("#register").submit();
+                possible = false;
+            } else {
+                return;
+            }
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h2>[ 회원 가입 ]</h2>
+    <form id="register" th:action="@{/account/register}" method="POST">
+        <div>
+            <label for="usrid">아이디 : </label>
+            <input type="text" id="usrid" name="usrid" placeholder="아이디를 입력해주세요" required>
+            <span id="idCheck"></span>
+        </div>
+
+        <div>
+            <label for="usrpwd">비밀번호 : </label>
+            <input type="password" id="usrpwd" name="usrpwd" placeholder="비밀번호를 입력해주세요" required>
+        </div>
+
+        <div>
+            <label for="usrname">이 름 : </label>
+            <input type="text" id="usrname" name="usrname" placeholder="이름을 입력해주세요" required>
+        </div>
+
+        <div>
+            <label for="email">이메일 : </label>
+            <input type="email" id="email" name="email" placeholder="이메일를 입력해주세요" required>
+        </div>
+
+        <div>
+            <input type="button" id="submit_btn" value="회원가입">
+        </div>
+    </form>
+</div>
+</body>
+</html>

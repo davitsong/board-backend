@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #reply2Update { display : none; }
+    </style>
+    <script th:inline="javascript" th:src="@{/script/jquery-3.6.0.min.js}"></script>
+
+    <script>
+        function delMovie(movieseq) {
+            if(confirm("삭제하시겠습니까?")) {
+                let url = `/movie/movieDelete?movieseq=${movieseq}`;
+                location.href = url;
+            }
+        }
+    </script>
+
+    <script>
+        let seq = '';
+        $(function(){
+            $("#reply2Write").on('click', reply2Write);
+            $("#reply2Update").on('click', reply2Update);
+            init();
+        });
+
+        // ajax로 현재 게시글번호에 달린 모든 댓글을 가지고 옴
+        function init() {
+            let movieseq = [[${movie.movieseq}]]
+            let sendData = {"movieseq" : movieseq}
+            $.ajax({
+                url : '/reply2/reply2List'
+                , method : 'POST'
+                , data : sendData
+                , success : output
+            })
+        }
+
+        // 출력하는 코드
+        function output(resp) {
+            let tag = '<table border="1">';
+
+            $.each(resp, function(index, item) {
+                tag += '<tr>';
+                tag += '    <td>' + item.replyseq + '</td>';
+                tag += '    <td>' + item.usrid + '</td>';
+                tag += '    <td>' + item.replytext + '</td>';
+                tag += '    <td>' + item.regdate + '</td>';
+                tag += '    <td><input type="button" value="삭제" class="delBtn"    data-sno="' + item.replyseq + '" >';
+                tag += '    <td><input type="button" value="수정" class="updateBtn" data-sno="' + item.replyseq + '" >';
+                tag += '</tr>'
+            })
+            tag += '</table>';
+
+            $("#reply2Display").html(tag);
+            $(".delBtn").on('click', reply2Delete);
+            $(".updateBtn").on('click', reply2Find);
+        }
+
+        // 댓글을 등록하는 함수
+        function reply2Write() {
+            let movieseq  = $("#movieseq").val();
+            let replytext = $("#replytext").val();
+
+            let sendData = { "replytext" : replytext, "movieseq" : movieseq};
+
+            $.ajax({
+                url : '/reply2/reply2Write',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    alert(resp);
+                    $("#replytext").val("");
+                    init();
+                }
+            });
+        }
+        // 댓글 삭제
+        function reply2Delete() {
+
+            let replyseq = $(this).attr('data-sno');
+            let movieseq = $("#movieseq").val();
+
+            let sendData = {"movieseq" : movieseq, "replyseq" : replyseq}
+            alert(JSON.stringify(sendData))
+            $.ajax({
+                url : '/reply2/reply2Delete',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    alert(resp);
+                    init();
+                }
+            })
+        }
+
+        // 댓글 수정을 위한 조회
+        function reply2Find() {
+            let replyseq = $(this).attr('data-sno');
+
+            $.ajax({
+                url: '/reply2/reply2Find',
+                method : 'POST',
+                data : {"replyseq" : replyseq},
+                success : function(resp) {
+
+                    if(resp !== "") {
+                        $("#replytext").val(resp.replytext);
+                        $("#replytext").focus();
+                        $("#reply2Write").css("display", "none");
+                        $("#reply2Update").css("display", "inline");
+
+                        seq = resp.replyseq; // 전역변수 seq에 고치려고 하는 댓글 번호를 저장
+                    } else {
+                        alert("자신이 쓴 댓글만 수정할 수 있습니다.");
+                        return;
+                    }
+                }
+
+            })
+        }
+        // 댓글을 수정하는 함수
+        function reply2Update() {
+            let replyseq = seq;
+            let replytext = $("#replytext").val();
+
+            let sendData = {"replyseq" : replyseq, "replytext" : replytext }
+
+            $.ajax({
+                url :'/reply2/reply2Update',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    $("#reply2Write").css("display", "inline");
+                    $("#reply2Update").css("display", "none");
+                    $("#reply2text").val("");
+                    init();
+                }
+            })
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+<!--    <h2>[글 자세히 보기]</h2>-->
+    <p><h2><span th:text="${movie.title}">실제 글 제목</span></h2></p>
+    <img th:src="@{/movie/download(movieseq=${movie.movieseq})}">
+    <p><h3>줄거리 : </h3>  <span th:text="${movie.content}">실제 글 내용</span></p>
+
+    <p>
+        <span>
+<!--        <a  th:href="@{/movie/download(movieseq=${movie.movieseq})}" th:text="${movie.originalfile}">첨부파일</a>-->
+
+      </span>
+    </p>
+    <div>
+        <a href="javascript:"  th:onclick="|delMovie(${movie.movieseq})|">삭제</a>&nbsp;
+        <a href="#" th:href="@{/movie/movieUpdate(movieseq=${movie.movieseq})}">수정</a>&nbsp;
+    </div>
+    <div><span><h2>영화리뷰</h2></span></div>
+
+    <!-- 댓글 입력 창 : 로그인을 한 사람만 입력하도록 -->
+    <div sec:authorize="isAuthenticated()">
+        <form>
+            <input type="hidden" id="movieseq" name="movieseq" th:value="${movie.movieseq}">
+            <table>
+                <tr>
+                    <td>
+                        <input type="text" id="replytext" name="replytext">
+                        <input id="reply2Write"  type="button" value="댓글 입력">
+                        <input id="reply2Update" type="button" value="댓글 수정">
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+
+    <!-- 댓글 목록 창 -->
+    <div id="reply2Display"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <style>
+        #replyUpdate { display : none; }
+    </style>
+    <script th:inline="javascript" th:src="@{/script/jquery-3.6.0.min.js}"></script>
+    <script>
+      function delBoard(boardseq) {
+        if(confirm("삭제하시겠습니까?")) {
+          let url = `/board/boardDelete?boardseq=${boardseq}`;
+          location.href = url;
+        }
+      }
+    </script>
+    <script>
+        let seq = '';
+        $(function(){
+            $("#replyWrite").on('click', replyWrite);
+            $("#replyUpdate").on('click', replyUpdate);
+            init();
+        });
+
+        // ajax로 현재 게시글번호에 달린 모든 댓글을 가지고 옴
+        function init() {
+            let boardseq = [[${board.boardseq}]]
+            let sendData = {"boardseq" : boardseq}
+            $.ajax({
+                url : '/reply/replyList'
+                , method : 'POST'
+                , data : sendData
+                , success : output
+            })
+        }
+
+        // 출력하는 코드
+        function output(resp) {
+            let tag = '<table border="1">';
+
+            $.each(resp, function(index, item) {
+                tag += '<tr>';
+                tag += '    <td>' + item.replyseq + '</td>';
+                tag += '    <td>' + item.usrid + '</td>';
+                tag += '    <td>' + item.replytext + '</td>';
+                tag += '    <td>' + item.regdate + '</td>';
+                tag += '    <td><input type="button" value="삭제" class="delBtn"    data-sno="' + item.replyseq + '" >';
+                tag += '    <td><input type="button" value="수정" class="updateBtn" data-sno="' + item.replyseq + '" >';
+                tag += '</tr>'
+            })
+            tag += '</table>';
+
+            $("#replyDisplay").html(tag);
+            $(".delBtn").on('click', replyDelete);
+            $(".updateBtn").on('click', replyFind);
+        }
+
+        // 댓글을 등록하는 함수
+        function replyWrite() {
+            let boardseq  = $("#boardseq").val();
+            let replytext = $("#replytext").val();
+
+            let sendData = { "replytext" : replytext, "boardseq" : boardseq };
+
+            $.ajax({
+                url : '/reply/replyWrite',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    alert(resp);
+                    $("#replytext").val("");
+                    init();
+                }
+            });
+        }
+        // 댓글 삭제
+        function replyDelete() {
+            let replyseq = $(this).attr('data-sno');
+            let boardseq = $("#boardseq").val();
+
+            let sendData = {"boardseq" : boardseq, "replyseq" : replyseq}
+
+            $.ajax({
+                url : '/reply/replyDelete',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    alert(resp);
+                    init();
+                }
+            })
+        }
+
+        // 댓글 수정을 위한 조회
+        function replyFind() {
+            let replyseq = $(this).attr('data-sno');
+
+            $.ajax({
+                url: '/reply/replyFind',
+                method : 'POST',
+                data : {"replyseq" : replyseq},
+                success : function(resp) {
+
+                    if(resp !== "") {
+                        $("#replytext").val(resp.replytext);
+                        $("#replytext").focus();
+                        $("#replyWrite").css("display", "none");
+                        $("#replyUpdate").css("display", "inline");
+
+                        seq = resp.replyseq; // 전역변수 seq에 고치려고 하는 댓글 번호를 저장
+                    } else {
+                        alert("자신이 쓴 댓글만 수정할 수 있습니다.");
+                        return;
+                    }
+                }
+
+            })
+        }
+        // 댓글을 수정하는 함수
+        function replyUpdate() {
+            let replyseq = seq;
+            let replytext = $("#replytext").val();
+
+            let sendData = {"replyseq" : replyseq, "replytext" : replytext }
+
+            $.ajax({
+                url :'/reply/replyUpdate',
+                method : 'POST',
+                data : sendData,
+                success : function(resp) {
+                    $("#replyWrite").css("display", "inline");
+                    $("#replyUpdate").css("display", "none");
+                    $("#replytext").val("");
+                    init();
+                }
+            })
+        }
+    </script>
+</head>
+<body>
+<div class="container">
+    <h2>[글 자세히 보기]</h2>
+    <p>글제목 : <span th:text="${board.title}">실제 글 제목</span></p>
+    <p>글내용 : <span th:text="${board.content}">실제 글 내용</span></p>
+
+    <p>첨부파일 :
+        <span>
+        <a   th:href="@{/board/download(boardseq=${board.boardseq})}" th:text="${board.originalfile}">첨부파일</a>
+        <img th:src="@{/board/download(boardseq=${board.boardseq})}">
+      </span>
+    </p>
+    <div>
+        <a href="javascript:"  th:onclick="|delBoard(${board.boardseq})|">삭제</a>&nbsp;
+        <a href="#" th:href="@{/board/boardUpdate(boardseq=${board.boardseq})}">수정</a>&nbsp;
+    </div>
+
+    <!-- 댓글 입력 창 : 로그인을 한 사람만 입력하도록 -->
+    <div sec:authorize="isAuthenticated()">
+        <form>
+            <input type="hidden" id="boardseq" name="boardseq" th:value="${board.boardseq}">
+            <table>
+                <tr>
+                    <td>
+                        <input type="text" id="replytext" name="replytext">
+                        <input id="replyWrite"  type="button" value="댓글 입력">
+                        <input id="replyUpdate" type="button" value="댓글 수정">
+                    </td>
+                </tr>
+            </table>
+        </form>
+    </div>
+
+    <!-- 댓글 목록 창 -->
+    <div id="replyDisplay"></div>
+</div>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="org.smart.board.dao.ReplyDao">
+    <!-- 댓글 입력 -->
+    <insert id="insert" parameterType="Reply">
+        INSERT INTO reply
+            (replyseq, boardseq, usrid, replytext )
+        VALUES
+            (reply_seq.nextval, #{boardseq}, #{usrid} , #{replytext} )
+    </insert>
+
+    <!-- 댓글 목록 -->
+    <select id="list" resultType="Reply" parameterType="Long">
+        SELECT
+            replyseq, boardseq, usrid, replytext, TO_CHAR(regdate, 'YYYY-MM-DD') as regdate
+        FROM reply
+        WHERE boardseq = #{boardseq}
+        ORDER BY replyseq
+    </select>
+
+    <!-- 댓글 삭제 -->
+    <delete id="delete" parameterType="Long">
+        DELETE FROM reply
+        WHERE replyseq = #{replyseq}
+    </delete>
+
+    <!-- 댓글 수정 -->
+    <update id="update" parameterType="Reply">
+        UPDATE reply
+        SET
+            replytext = #{replytext}
+            , regdate = sysdate
+        WHERE replyseq = #{replyseq}
+    </update>
+
+    <!-- 댓글 1개 조회 -->
+    <select id="findOne" resultType="Reply" parameterType="long">
+        SELECT
+            replyseq, boardseq, usrid, replytext, TO_CHAR(regdate, 'YYYY-MM-DD') as regdate
+        FROM reply
+        WHERE replyseq = #{replyseq}
+    </select>
+</mapper>

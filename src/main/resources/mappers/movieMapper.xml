@@ -1,0 +1,85 @@
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+
+<mapper namespace="org.smart.board.dao.MovieDao">
+
+    <select id="list" resultType="Movie" parameterType="Movie">
+        SELECT
+        movieseq, usrid, title, "content", "like", hitcount, dislike, to_char(regdate, 'YYYY-MM-DD') as regdate
+        FROM
+        movie
+        ORDER BY movieseq
+    </select>
+
+    <insert id="insert" parameterType="Movie">
+        INSERT INTO movie
+        (movieseq, usrid, title, "content"
+        <if test="originalfile !=null ">
+            ,originalfile, savedfile
+        </if>
+        )
+        VALUES
+        (movie_seq.nextval, #{usrid}, #{title}, #{content}
+        <if test="originalfile !=null ">
+            ,#{originalfile}, #{savedfile}
+        </if>
+        )
+    </insert>
+
+    <delete id="delete" parameterType="Long">
+        DELETE movie
+        WHERE
+            movieseq = #{movieseq}
+    </delete>
+
+    <select id="findOne" parameterType="Long" resultType="Movie">
+        SELECT
+            movieseq, usrid, title, "content", hitcount,
+            to_char(regdate, 'YYYY-MM-DD') as regdate,
+            originalfile, savedfile
+        FROM movie
+        WHERE
+            movieseq = #{movieseq}
+    </select>
+
+
+    <update id="update" parameterType="Movie">
+        UPDATE movie
+        SET
+            title = #{title}
+          , "content" = #{content}
+        WHERE
+            movieseq = #{movieseq}
+    </update>
+
+    <update id="hitCount" parameterType="Long" >
+        UPDATE movie
+        SET
+            hitcount = hitcount + 1
+        WHERE
+            movieseq = #{movieseq}
+    </update>
+
+    <select id="findAll" resultType="Movie" parameterType="map">
+        SELECT * FROM (
+                          SELECT rownum bnum, b.*
+                          FROM (
+                                   SELECT * FROM movie
+                                   WHERE
+                                       ${searchItem} LIKE '%' || #{searchWord} || '%'
+                                   ORDER BY regdate DESC
+                               ) b
+                      ) WHERE bnum BETWEEN #{srow} and #{erow}
+    </select>
+
+    <select id="getMovieCount" parameterType="map" resultType="int">
+        SELECT count(*)
+        FROM movie
+        WHERE
+            ${searchItem} LIKE '%' || #{searchWord} || '%'
+    </select>
+
+
+</mapper>
